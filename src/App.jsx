@@ -79,62 +79,102 @@ function drawCard(canvas, texto, avatarImg) {
   ctx.beginPath(); ctx.moveTo(90, H - 70); ctx.lineTo(W - 90, H - 70); ctx.stroke();
 }
 
-// --- Geração de frases por assunto livre ---
-// Templates combinados aleatoriamente para gerar variações reais a cada clique
-const ABERTURAS = [
+// --- Geração inteligente local (sem custo) ---
+// Detecta se o usuário escreveu uma frase pronta ou só um assunto/palavra,
+// e gera variações diferentes em cada caso, evitando repetição.
+
+const ABERTURAS_TEMA = [
   (a) => `Ninguém domina ${a} da noite para o dia.`,
-  (a) => `${a.charAt(0).toUpperCase() + a.slice(1)} não é sobre sorte.`,
+  (a) => `${a} não é sobre sorte.`,
   (a) => `Toda vez que penso em ${a}, lembro de uma coisa.`,
   (a) => `Quem entende ${a} de verdade, sabe que tudo começa pequeno.`,
   (a) => `Existe um jeito certo de pensar sobre ${a}.`,
   (a) => `Falar de ${a} é falar de escolhas diárias.`,
-  (a) => `${a.charAt(0).toUpperCase() + a.slice(1)} separa quem planeja de quem só sonha.`,
+  (a) => `${a} separa quem planeja de quem só sonha.`,
   (a) => `Se você ainda não pensou em ${a} com seriedade, talvez seja a hora.`,
+  (a) => `Por que tanta gente trava quando o assunto é ${a}?`,
+  (a) => `${a}. Poucas palavras carregam tanto peso quanto essa.`,
 ];
 
-const DESENVOLVIMENTOS = [
-  (a) => `Quem entende isso, constrói com consistência — não com pressa.`,
-  (a) => `O segredo está nas decisões repetidas, não nas grandes promessas.`,
-  (a) => `O que parece distante hoje fica perto com o plano certo.`,
-  (a) => `Cada escolha pequena conta mais do que parece.`,
-  (a) => `Disciplina vence motivação quando o assunto é ${a}.`,
-  (a) => `O caminho certo costuma ser mais simples do que imaginamos.`,
-  (a) => `Quem tem um guia certo, chega mais rápido e com menos erros.`,
-  (a) => `A diferença está em quem age — não em quem só pensa.`,
+const DESENVOLVIMENTOS_TEMA = [
+  () => `Quem entende isso, constrói com consistência — não com pressa.`,
+  () => `O segredo está nas decisões repetidas, não nas grandes promessas.`,
+  () => `O que parece distante hoje fica perto com o plano certo.`,
+  () => `Cada escolha pequena conta mais do que parece.`,
+  () => `Disciplina vence motivação na maioria das vezes.`,
+  () => `O caminho certo costuma ser mais simples do que imaginamos.`,
+  () => `Quem tem um guia certo, chega mais rápido e com menos erros.`,
+  () => `A diferença está em quem age — não em quem só pensa.`,
+  () => `Informação certa muda completamente a forma de decidir.`,
+  () => `O medo geralmente vem da falta de clareza, não do risco real.`,
 ];
 
-const FECHAMENTOS = [
+const FECHAMENTOS_TEMA = [
   () => `Estratégia, consistência e o parceiro certo fazem toda a diferença.`,
   () => `Comece com o que você tem. O resto se ajusta no caminho.`,
   () => `O primeiro passo é simples: decidir agora.`,
   () => `Simule, planeje, e comece — o resto é consequência.`,
   () => `Não é sobre ter tudo certo. É sobre começar certo.`,
   () => `O melhor momento pra agir continua sendo agora.`,
+  () => `Toda jornada de patrimônio começa com uma decisão simples.`,
+  () => `Conhecimento é o que separa quem trava de quem avança.`,
 ];
 
-function gerarFraseIA(assunto) {
-  const tema = (assunto || "consórcio e patrimônio").trim().toLowerCase();
-  const abre = ABERTURAS[Math.floor(Math.random() * ABERTURAS.length)](tema);
-  const meio = DESENVOLVIMENTOS[Math.floor(Math.random() * DESENVOLVIMENTOS.length)](tema);
-  const fecha = FECHAMENTOS[Math.floor(Math.random() * FECHAMENTOS.length)]();
+// Quando o usuário cola uma frase já elaborada, ampliamos com uma reflexão complementar
+const EXPANSOES_FRASE = [
+  (f) => `${f}\n\nÉ exatamente essa mentalidade que separa quem só sonha de quem constrói de verdade.`,
+  (f) => `${f}\n\nVale lembrar disso sempre que a pressa tentar tomar o lugar da estratégia.`,
+  (f) => `${f}\n\nNo fim, isso resume bem por que planejamento vale mais que pressa.`,
+  (f) => `${f}\n\nE quem entende isso, chega mais longe com menos esforço.`,
+  (f) => `${f}\n\nQuem aplica isso no dia a dia, sente a diferença a longo prazo.`,
+  (f) => `${f}\n\nUma reflexão simples, mas que muda a forma de ver o próprio plano.`,
+];
+
+function pareceFrasePronta(texto) {
+  const t = texto.trim();
+  // Heurística simples: tem mais de 6 palavras, ou termina com pontuação, ou tem mais de 35 caracteres
+  const palavras = t.split(/\s+/).length;
+  return palavras > 6 || /[.!?]$/.test(t) || t.length > 35;
+}
+
+function sortear(lista) {
+  return lista[Math.floor(Math.random() * lista.length)];
+}
+
+function gerarFraseLocal(entrada) {
+  const texto = (entrada || "consórcio e patrimônio").trim();
+
+  if (pareceFrasePronta(texto)) {
+    // Usuário colou uma frase/ideia já elaborada — expandimos com uma reflexão complementar
+    const expandida = sortear(EXPANSOES_FRASE)(texto);
+    return expandida;
+  }
+
+  // Usuário digitou só um assunto/palavra — criamos do zero
+  const tema = texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+  const abre = sortear(ABERTURAS_TEMA)(tema);
+  const meio = sortear(DESENVOLVIMENTOS_TEMA)();
+  const fecha = sortear(FECHAMENTOS_TEMA)();
   return `${abre}\n\n${meio}\n\n${fecha}`;
 }
 
-const EMOJIS_LEGENDA = ["💭", "📲", "🧭", "📋", "🎯", "📈", "🏡", "💡"];
+const EMOJIS_LEGENDA = ["💭", "🧭", "📋", "🎯", "📈", "🏡", "💡", "🔑"];
 const CTAS_LEGENDA = [
   "Se quiser entender como isso se aplica ao seu caso, me chama no WhatsApp.",
   "Quer simular seu plano? É só clicar no WhatsApp na bio.",
   "Bora conversar sobre o seu plano? Te espero no WhatsApp.",
   "Simulação sem compromisso — só mandar mensagem no WhatsApp.",
   "Se identificou? Vamos conversar sobre seu plano pelo WhatsApp.",
+  "Toda dúvida começa com uma conversa. Te espero no WhatsApp.",
 ];
 
-function gerarLegendaIA(assunto, frase) {
-  const tema = (assunto || "consórcio").trim();
-  const emoji = EMOJIS_LEGENDA[Math.floor(Math.random() * EMOJIS_LEGENDA.length)];
-  const cta = CTAS_LEGENDA[Math.floor(Math.random() * CTAS_LEGENDA.length)];
+function gerarLegendaLocal(entrada, frase) {
+  const tema = (entrada || "consórcio").trim().toLowerCase().replace(/[^a-zà-ú0-9\s]/gi, "");
+  const hashtagTema = tema.split(/\s+/).slice(0, 2).join("");
+  const emoji = sortear(EMOJIS_LEGENDA);
+  const cta = sortear(CTAS_LEGENDA);
   const primeiraLinha = frase.split("\n")[0];
-  return `${primeiraLinha} ${emoji}\n\n${cta} 📲\n\n#consorcio #${tema.replace(/\s+/g, "")} #planejamentofinanceiro #patrimonio`;
+  return `${primeiraLinha} ${emoji}\n\n${cta} 📲\n\n#consorcio #${hashtagTema} #planejamentofinanceiro #patrimonio`;
 }
 
 export default function App() {
@@ -143,6 +183,8 @@ export default function App() {
   const [legenda, setLegenda] = useState("Ninguém constrói patrimônio por acaso. 💭\n\nSe quiser entender como isso se aplica ao seu caso, me chama no WhatsApp. 📲\n\n#consorcio #consórcioepatrimônio #planejamentofinanceiro #patrimonio");
   const [imgSrc, setImgSrc] = useState(null);
   const [copiado, setCopiado] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
   const canvasRef = useRef(null);
   const avatarRef = useRef(null);
 
@@ -160,10 +202,22 @@ export default function App() {
   }
 
   function gerarComIA() {
-    const novaFrase = gerarFraseIA(assunto);
-    setTexto(novaFrase);
-    setLegenda(gerarLegendaIA(assunto, novaFrase));
-    setImgSrc(null);
+    if (!assunto.trim()) return;
+    setCarregando(true);
+    setErro("");
+    // pequeno delay para dar a sensação de processamento
+    setTimeout(() => {
+      try {
+        const novaFrase = gerarFraseLocal(assunto);
+        setTexto(novaFrase);
+        setLegenda(gerarLegendaLocal(assunto, novaFrase));
+        setImgSrc(null);
+      } catch (e) {
+        setErro("Não consegui gerar agora. Tenta de novo.");
+      } finally {
+        setCarregando(false);
+      }
+    }, 400);
   }
 
   function copiarLegenda() {
@@ -191,14 +245,19 @@ export default function App() {
         <div>
           <span style={s.label}>Sobre o que você quer postar?</span>
           <input type="text" value={assunto} onChange={e => setAssunto(e.target.value)}
-            placeholder="Ex: medo de investir, juros, consórcio de carro..."
+            placeholder="Ex: medo de investir, juros, ou cole uma frase pra eu melhorar..."
             style={s.input} />
+          <p style={{ fontSize: "0.72rem", color: "#bbb", marginTop: 6 }}>
+            Digite uma palavra/assunto (ex: "juros") para criar uma frase nova, ou cole uma frase que você já tem para ela ser expandida.
+          </p>
         </div>
 
-        <button onClick={gerarComIA}
-          style={{ background: "#fff", border: "1.5px solid #111", borderRadius: 12, color: "#111", fontFamily: "inherit", fontSize: "0.85rem", fontWeight: 700, padding: 12, cursor: "pointer", width: "100%" }}>
-          🪄 Gerar frase com IA
+        <button onClick={gerarComIA} disabled={carregando}
+          style={{ background: carregando ? "#ddd" : "#fff", border: "1.5px solid #111", borderRadius: 12, color: "#111", fontFamily: "inherit", fontSize: "0.85rem", fontWeight: 700, padding: 12, cursor: carregando ? "default" : "pointer", width: "100%" }}>
+          {carregando ? "Pensando..." : "🪄 Gerar frase com IA"}
         </button>
+
+        {erro && <p style={{ color: "#c0392b", fontSize: "0.78rem" }}>{erro}</p>}
 
         <div>
           <span style={s.label}>Texto do card (edite se quiser)</span>
